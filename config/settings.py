@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "tarefas",
     "auth_api",
     "parametro",
+    "jira_sync",
 ]
 
 

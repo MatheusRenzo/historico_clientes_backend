@@ -20,4 +20,5 @@ urlpatterns = [
     path("api/", include("parametro.urls")),
     path("api/", include("contratos.urls")),
     path("api/", include("tarefas.urls")),
+    path("api/", include("jira_sync.urls")),
 ]

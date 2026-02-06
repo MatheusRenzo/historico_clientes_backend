@@ -20,7 +20,7 @@ class ParametroCliente(models.Model):
     )
     nome = models.CharField(max_length=200)
     descricao = models.TextField(blank=True, null=True)
-    valor = models.CharField(max_length=100, blank=True, null=True)
+    valor = models.CharField(max_length=400, blank=True, null=True)
 
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)

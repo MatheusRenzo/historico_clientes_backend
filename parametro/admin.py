@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Parametro, ParametroCliente, ItensMonitoramento
+from .models import Parametro, ParametroCliente, ItensMonitoramento, ContextoCliente
 
 @admin.register(Parametro)
 class ParametroAdmin(admin.ModelAdmin):
@@ -17,3 +17,9 @@ class ItensMonitoramentoAdmin(admin.ModelAdmin):
     list_display = ("id", "cliente", "monitoramento", "tipo", "criado_em")
     search_fields = ("monitoramento", "cliente__nome")
     list_filter = ("cliente", "tipo")
+
+@admin.register(ContextoCliente)
+class ContextoClienteAdmin(admin.ModelAdmin):
+    list_display = ("id", "cliente", "nome", "descricao", "criado_em", "ativo")
+    search_fields = ("cliente", "nome", "descriao", "criado_em", "ativo")
+    list_filter = ("cliente", "nome")

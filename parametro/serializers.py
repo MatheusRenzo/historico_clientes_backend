@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Parametro, ParametroCliente, ItensMonitoramento
+from .models import Parametro, ParametroCliente, ItensMonitoramento, ContextoCliente
 
 class ParametroSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,4 +16,9 @@ class ParametroClienteSerializer(serializers.ModelSerializer):
 class ItensMonitoramentoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ItensMonitoramento
+        fields = "__all__"
+
+class ContextoClienteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContextoCliente
         fields = "__all__"

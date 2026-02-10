@@ -51,6 +51,8 @@ INSTALLED_APPS = [
     "auth_api",
     "parametro",
     "jira_sync",
+    "rag",
+    "zabbix_integration",
 ]
 
 
@@ -77,7 +79,10 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
     ),
+    
 }
 
 

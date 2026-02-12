@@ -127,3 +127,126 @@ class ZabbixEvent(models.Model):
             models.Index(fields=["cliente", "clock"]),
             models.Index(fields=["cliente", "severity"]),
         ]
+
+class ZabbixTemplate(models.Model):
+    cliente = models.ForeignKey("clientes.Cliente", on_delete=models.CASCADE)
+    templateid = models.CharField(max_length=50)
+    name = models.CharField(max_length=255)
+
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("cliente", "templateid")
+        indexes = [models.Index(fields=["cliente", "name"])]
+
+    def __str__(self):
+        return self.name
+    
+class ZabbixUser(models.Model):
+    cliente = models.ForeignKey("clientes.Cliente", on_delete=models.CASCADE)
+    userid = models.CharField(max_length=50)
+    username = models.CharField(max_length=120)  # alias/username
+    name = models.CharField(max_length=120, blank=True, null=True)
+    surname = models.CharField(max_length=120, blank=True, null=True)
+
+    roleid = models.CharField(max_length=50, blank=True, null=True)
+    user_groups = models.JSONField(blank=True, null=True)
+
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("cliente", "userid")
+        indexes = [models.Index(fields=["cliente", "username"])]
+
+    def __str__(self):
+        return self.username
+    
+class ZabbixSLA(models.Model):
+    cliente = models.ForeignKey("clientes.Cliente", on_delete=models.CASCADE)
+    slaid = models.CharField(max_length=50)
+    name = models.CharField(max_length=255)
+
+    # campos típicos (podem variar conforme versão/config)
+    period = models.IntegerField(blank=True, null=True)
+    slo = models.DecimalField(max_digits=6, decimal_places=3, blank=True, null=True)
+    status = models.IntegerField(blank=True, null=True)
+
+    raw = models.JSONField(blank=True, null=True)
+
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("cliente", "slaid")
+        indexes = [models.Index(fields=["cliente", "name"])]
+
+    def __str__(self):
+        return self.name
+
+class ZabbixAlarm(models.Model):
+    cliente = models.ForeignKey("clientes.Cliente", on_delete=models.CASCADE)
+    eventid = models.CharField(max_length=50)  # event do problema
+    name = models.CharField(max_length=255)
+    severity = models.IntegerField(default=0)
+    acknowledged = models.BooleanField(default=False)
+
+    clock = models.DateTimeField()  # início do problema (epoch -> datetime)
+
+    hostid = models.CharField(max_length=50, blank=True, null=True)
+    hostname = models.CharField(max_length=255, blank=True, null=True)
+
+    raw = models.JSONField(blank=True, null=True)
+
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("cliente", "eventid")
+        indexes = [
+            models.Index(fields=["cliente", "severity"]),
+            models.Index(fields=["cliente", "clock"]),
+        ]
+
+    def __str__(self):
+        return f"[SEV {self.severity}] {self.name}"
+
+class ZabbixAlarmEvent(models.Model):
+    cliente = models.ForeignKey("clientes.Cliente", on_delete=models.CASCADE)
+    eventid = models.CharField(max_length=50, unique=True)
+
+    name = models.CharField(max_length=255, blank=True, null=True)
+    severity = models.IntegerField(blank=True, null=True)
+    acknowledged = models.BooleanField(default=False)
+    clock = models.DateTimeField()
+
+    hostid = models.CharField(max_length=50, blank=True, null=True)
+    hostname = models.CharField(max_length=255, blank=True, null=True)
+
+    raw = models.JSONField(blank=True, null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["cliente", "clock"]),
+            models.Index(fields=["cliente", "severity"]),
+        ]
+
+class ZabbixAlertSent(models.Model):
+    cliente = models.ForeignKey("clientes.Cliente", on_delete=models.CASCADE)
+    alertid = models.CharField(max_length=50, unique=True)
+
+    eventid = models.CharField(max_length=50, blank=True, null=True)
+    clock = models.DateTimeField()
+
+    sendto = models.CharField(max_length=255, blank=True, null=True)
+    subject = models.CharField(max_length=255, blank=True, null=True)
+    message = models.TextField(blank=True, null=True)
+    status = models.IntegerField(blank=True, null=True)
+
+    raw = models.JSONField(blank=True, null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["cliente", "clock"]),
+        ]

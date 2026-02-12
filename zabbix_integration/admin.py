@@ -9,6 +9,12 @@ from .models import (
     ZabbixItem,
     ZabbixHistory,
     ZabbixEvent,
+    ZabbixTemplate, 
+    ZabbixUser, 
+    ZabbixSLA,
+    ZabbixAlarm, 
+    ZabbixAlarmEvent, 
+    ZabbixAlertSent
 )
 
 @admin.register(ZabbixConnection)
@@ -129,3 +135,57 @@ class ZabbixEventAdmin(admin.ModelAdmin):
         label = f"SEV {sev}"
         return format_html("<b>{}</b>", label)
     severity_badge.short_description = "severity"
+
+@admin.register(ZabbixTemplate)
+class ZabbixTemplateAdmin(admin.ModelAdmin):
+    list_display = ("id", "cliente", "name", "templateid", "atualizado_em")
+    list_filter = ("cliente",)
+    search_fields = ("name", "templateid", "cliente__nome")
+    ordering = ("cliente__nome", "name")
+    autocomplete_fields = ("cliente",)
+
+
+@admin.register(ZabbixUser)
+class ZabbixUserAdmin(admin.ModelAdmin):
+    list_display = ("id", "cliente", "username", "name", "surname", "roleid", "atualizado_em")
+    list_filter = ("cliente", "roleid")
+    search_fields = ("username", "name", "surname", "cliente__nome")
+    ordering = ("cliente__nome", "username")
+    autocomplete_fields = ("cliente",)
+
+
+@admin.register(ZabbixSLA)
+class ZabbixSLAAdmin(admin.ModelAdmin):
+    list_display = ("id", "cliente", "name", "sloid", "period", "slo", "status", "atualizado_em")
+    list_filter = ("cliente", "status")
+    search_fields = ("name", "slaid", "cliente__nome")
+    ordering = ("cliente__nome", "name")
+    autocomplete_fields = ("cliente",)
+
+    def sloid(self, obj):
+        return obj.slaid
+    sloid.short_description = "slaid"
+
+@admin.register(ZabbixAlarm)
+class ZabbixAlarmAdmin(admin.ModelAdmin):
+    list_display = ("id", "cliente", "severity", "acknowledged", "clock", "hostname", "name")
+    list_filter = ("cliente", "severity", "acknowledged")
+    search_fields = ("name", "hostname", "cliente__nome")
+    ordering = ("-clock",)
+    autocomplete_fields = ("cliente",)
+
+@admin.register(ZabbixAlarmEvent)
+class ZabbixAlarmEventAdmin(admin.ModelAdmin):
+    list_display = ("eventid", "cliente", "severity", "acknowledged", "clock", "hostname", "name")
+    list_filter = ("cliente", "severity", "acknowledged")
+    search_fields = ("eventid", "name", "hostname", "cliente__nome")
+    ordering = ("-clock",)
+    autocomplete_fields = ("cliente",)
+
+@admin.register(ZabbixAlertSent)
+class ZabbixAlertSentAdmin(admin.ModelAdmin):
+    list_display = ("alertid", "cliente", "clock", "sendto", "subject", "status")
+    list_filter = ("cliente", "status")
+    search_fields = ("alertid", "eventid", "sendto", "subject", "cliente__nome")
+    ordering = ("-clock",)
+    autocomplete_fields = ("cliente",)

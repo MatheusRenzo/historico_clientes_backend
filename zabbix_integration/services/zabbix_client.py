@@ -65,3 +65,24 @@ class ZabbixClient:
 
     def event_get(self, **kwargs):
         return self._call("event.get", kwargs)
+
+    def template_get(self, **kwargs):
+        return self._call("template.get", kwargs)
+
+    def user_get(self, **kwargs):
+        return self._call("user.get", kwargs)
+
+    def sla_get(self, **kwargs):
+        return self._call("sla.get", kwargs)
+
+    def sla_getsli(self, **kwargs):
+        return self._call("sla.getsli", kwargs)
+
+    def problem_get(self, **kwargs):
+        return self._call("problem.get", kwargs)
+
+    def event_get(self, **kwargs):
+        return self._call("event.get", kwargs)
+
+    def alert_get(self, **kwargs):
+        return self._call("alert.get", kwargs)

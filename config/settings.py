@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "jira_sync",
     "rag",
     "zabbix_integration",
+    "accounts"
 ]
 
 

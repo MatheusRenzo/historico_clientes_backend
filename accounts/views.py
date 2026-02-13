@@ -5,26 +5,23 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.settings import api_settings
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from accounts.models import UserClienteMembership, UserClienteRole  # ajuste o import conforme seu app
-from accounts.serializers import CreateUserWithClienteSerializer
+#from accounts.serializers import CreateUserWithClienteSerializer
 from accounts.permissions import HasClienteRoleAtLeast
+
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 User = get_user_model()
 
-
 class LoginWithClienteView(APIView):
     permission_classes = [AllowAny]
-
-    """
-    POST /api/auth/login/
-    Body:
-    {
-      "username": "thiago",   // pode ser username ou email
-      "password": "123",
-      "cliente": 1
-    }
-    """
 
     def post(self, request):
         username = (request.data.get("username") or "").strip()
@@ -34,13 +31,11 @@ class LoginWithClienteView(APIView):
         if not username or not password or not cliente_id:
             return Response(
                 {"detail": "Informe username, password e cliente."},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=400,
             )
 
-        # 1) autenticação: tenta username; se falhar, tenta email
         user = authenticate(request, username=username, password=password)
         if user is None:
-            # tenta por email (caso o front mande email no campo username)
             try:
                 u = User.objects.get(email__iexact=username)
                 user = authenticate(request, username=u.username, password=password)
@@ -48,37 +43,37 @@ class LoginWithClienteView(APIView):
                 user = None
 
         if user is None:
-            return Response({"detail": "Credenciais inválidas."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"detail": "Credenciais inválidas."}, status=401)
 
         if not user.is_active:
-            return Response({"detail": "Usuário inativo."}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail": "Usuário inativo."}, status=403)
 
-        # 2) valida vínculo com o cliente + pega role
         membership = (
             UserClienteMembership.objects
             .select_related("cliente")
             .filter(user=user, cliente_id=int(cliente_id), ativo=True)
             .first()
         )
+
         if not membership:
             return Response(
                 {"detail": "Usuário não possui acesso a este cliente."},
-                status=status.HTTP_403_FORBIDDEN,
+                status=403,
             )
 
-        # 3) gera JWT
-        refresh = RefreshToken.for_user(user)
+        # ✅ Gera token usando o mesmo serializer do TokenObtainPairView
+        serializer = TokenObtainPairSerializer(
+            data={"username": user.username, "password": password}
+        )
+        serializer.is_valid(raise_exception=True)
+        tokens = serializer.validated_data
 
-        # 4) retorna payload para o front
-        full_name = (user.get_full_name() or "").strip()
-        if not full_name:
-            # fallback: tenta primeiro nome do username
-            full_name = user.username
+        full_name = (user.get_full_name() or "").strip() or user.username
 
         return Response(
             {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
+                "access": tokens["access"],
+                "refresh": tokens["refresh"],
                 "user": {
                     "id": user.id,
                     "nome": full_name,
@@ -90,8 +85,9 @@ class LoginWithClienteView(APIView):
                 },
                 "role": membership.role,
             },
-            status=status.HTTP_200_OK,
+            status=200,
         )
+
 
 class CreateUserView(APIView):
     """
@@ -129,3 +125,18 @@ class CreateUserView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+class MeClientsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        ms = (
+            request.user.memberships
+            .filter(ativo=True)
+            .select_related("cliente")
+            .order_by("cliente__nome")
+        )
+        return Response([
+            {"cliente_id": m.cliente_id, "cliente_nome": m.cliente.nome, "role": m.role}
+            for m in ms
+        ])

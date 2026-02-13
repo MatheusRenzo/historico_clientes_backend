@@ -1,20 +1,24 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+
 from accounts.models import UserClienteMembership, UserClienteRole
 
 User = get_user_model()
 
 
-class CreateUserWithClienteSerializer(serializers.Serializer):
+class MembershipInputSerializer(serializers.Serializer):
+    cliente = serializers.IntegerField()
+    role = serializers.ChoiceField(choices=UserClienteRole.choices)
+
+
+class CreateUserWithMembershipsSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     email = serializers.EmailField()
     nome = serializers.CharField(max_length=150, required=False, allow_blank=True)
     sobrenome = serializers.CharField(max_length=150, required=False, allow_blank=True)
     password = serializers.CharField(write_only=True, min_length=6)
 
-    # vínculo
-    cliente = serializers.IntegerField()
-    role = serializers.ChoiceField(choices=UserClienteRole.choices)
+    memberships = MembershipInputSerializer(many=True)
 
     def validate_username(self, value):
         v = value.strip()
@@ -29,8 +33,7 @@ class CreateUserWithClienteSerializer(serializers.Serializer):
         return v
 
     def create(self, validated_data):
-        cliente_id = validated_data.pop("cliente")
-        role = validated_data.pop("role")
+        memberships = validated_data.pop("memberships")
         password = validated_data.pop("password")
 
         nome = validated_data.pop("nome", "")
@@ -46,11 +49,14 @@ class CreateUserWithClienteSerializer(serializers.Serializer):
         user.set_password(password)
         user.save()
 
-        UserClienteMembership.objects.create(
-            user=user,
-            cliente_id=cliente_id,
-            role=role,
-            ativo=True,
-        )
+        UserClienteMembership.objects.bulk_create([
+            UserClienteMembership(
+                user=user,
+                cliente_id=m["cliente"],
+                role=m["role"],
+                ativo=True,
+            )
+            for m in memberships
+        ])
 
         return user

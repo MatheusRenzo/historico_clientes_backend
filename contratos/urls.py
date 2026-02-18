@@ -1,7 +1,7 @@
-from rest_framework.routers import DefaultRouter
-from .views import ContratoViewSet
+from django.urls import path
+from .views_pdf import AnalisarContratoPDFView
 
-router = DefaultRouter()
-router.register(r"contratos", ContratoViewSet, basename="contrato")
+urlpatterns = [
+    path("contratos/<int:pk>/analisar-pdf/", AnalisarContratoPDFView.as_view(), name="analisar-contrato-pdf"),
 
-urlpatterns = router.urls
+]

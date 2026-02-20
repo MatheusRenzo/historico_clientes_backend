@@ -7,6 +7,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+
+from contratos.services_proposta import importar_proposta_tecnica_e_gerar_tarefas
 from .serializers import ContratoSerializer, ContratoTarefaSerializer
 from openai import OpenAI
 from django_filters.rest_framework import DjangoFilterBackend
@@ -273,6 +275,27 @@ class ContratoViewSet(viewsets.ModelViewSet):  # ✅ troque ... por ModelViewSet
         # reutiliza sua APIView existente chamando o método post
         view = AnalisarContratoPDFView.as_view()
         return view(request._request, pk=pk)
+    
+    @action(detail=True, methods=["post"], url_path="proposta/importar-e-gerar-tarefas")
+    def proposta_importar_e_gerar_tarefas(self, request, pk=None):
+        contrato = self.get_object()
+
+        arquivo_id = request.data.get("arquivo_id")
+        if not arquivo_id:
+            return Response({"detail": "Envie arquivo_id (ContratoArquivo.id)."}, status=status.HTTP_400_BAD_REQUEST)
+
+        substituir_clausulas = str(request.data.get("substituir_clausulas") or "true").lower() in ("1","true","sim","yes")
+        substituir_tarefas_ia = str(request.data.get("substituir_tarefas_ia") or "false").lower() in ("1","true","sim","yes")
+        evitar_duplicadas = str(request.data.get("evitar_duplicadas") or "true").lower() in ("1","true","sim","yes")
+
+        data = importar_proposta_tecnica_e_gerar_tarefas(
+            contrato_id=contrato.id,
+            arquivo_id=int(arquivo_id),
+            substituir_clausulas=substituir_clausulas,
+            substituir_tarefas_ia=substituir_tarefas_ia,
+            evitar_duplicadas=evitar_duplicadas,
+        )
+        return Response(data, status=status.HTTP_200_OK)
     
 
 def analisar_pdf(self, request, pk=None):

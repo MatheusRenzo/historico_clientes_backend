@@ -17,6 +17,7 @@ class Contrato(models.Model):
     horas_previstas_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
+    proposta_tecnica_md = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.cliente.nome} - {self.titulo}"
@@ -31,6 +32,7 @@ class ContratoArquivo(models.Model):
         CONTRATO_PRINCIPAL = "CONTRATO_PRINCIPAL", "Contrato principal"
         ADITIVO = "ADITIVO", "Aditivo"
         ANEXO = "ANEXO", "Anexo"
+        PROPOSTA_TECNICA = "PROPOSTA_TECNICA", "Proposta técnica"  # ✅ novo
         OUTRO = "OUTRO", "Outro"
 
     contrato = models.ForeignKey(

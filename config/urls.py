@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/", include("rag.urls")),
     path("api/", include("zabbix_integration.urls")),
     path("api/", include("accounts.urls")),
+    path("api/", include("contratos.analytics.urls")),
 
 ]
 

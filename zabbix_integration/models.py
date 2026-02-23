@@ -28,6 +28,7 @@ class ZabbixHost(models.Model):
     status = models.CharField(max_length=20)
 
     ip = models.CharField(max_length=50, blank=True, null=True)
+    objectid = models.CharField(max_length=50, blank=True, null=True)
 
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
@@ -46,7 +47,8 @@ class ZabbixTrigger(models.Model):
     prioridade = models.IntegerField()
     status = models.CharField(max_length=20)
     ultima_alteracao = models.DateTimeField()
-
+    raw = models.JSONField(default=dict, blank=True)
+    items = models.ForeignKey("zabbix_integration.ZabbixItem", on_delete=models.CASCADE, related_name="triggers", null=True)
     class Meta:
         unique_together = ("cliente", "triggerid")
 
@@ -68,7 +70,7 @@ from django.db import models
 
 class ZabbixItem(models.Model):
     cliente = models.ForeignKey("clientes.Cliente", on_delete=models.CASCADE)
-    host = models.ForeignKey("zabbix_integration.ZabbixHost", on_delete=models.CASCADE, related_name="items")
+    host = models.ForeignKey("zabbix_integration.ZabbixHost", on_delete=models.CASCADE, related_name="items", null=True)
 
     itemid = models.CharField(max_length=50)
     name = models.CharField(max_length=255)
@@ -93,7 +95,10 @@ class ZabbixItem(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.host.nome} - {self.name}"
+        # ajuste os campos conforme seu model real
+        host_nome = getattr(self.host, "nome", None) or getattr(self.host, "name", None) or "SEM_HOST"
+        item_nome = getattr(self, "nome", None) or getattr(self, "name", None) or f"Item#{self.pk}"
+        return f"{host_nome} - {item_nome}"
 
 class ZabbixHistory(models.Model):
     cliente = models.ForeignKey("clientes.Cliente", on_delete=models.CASCADE)
@@ -111,7 +116,8 @@ class ZabbixHistory(models.Model):
 class ZabbixEvent(models.Model):
     cliente = models.ForeignKey("clientes.Cliente", on_delete=models.CASCADE)
     eventid = models.CharField(max_length=50, unique=True)
-
+    trigger = models.ForeignKey("zabbix_integration.ZabbixTrigger", null=True, blank=True, on_delete=models.SET_NULL)
+    
     name = models.CharField(max_length=255, blank=True, null=True)
     severity = models.IntegerField(blank=True, null=True)
     acknowledged = models.BooleanField(default=False)
@@ -120,7 +126,12 @@ class ZabbixEvent(models.Model):
 
     host = models.ForeignKey("zabbix_integration.ZabbixHost", on_delete=models.SET_NULL, null=True, blank=True)
 
+    hostid = models.CharField(max_length=50, blank=True, null=True)  # redundante mas útil para consultas sem join
     raw = models.JSONField(blank=True, null=True)
+
+    hostname = models.CharField(max_length=255, blank=True, null=True)
+    objectid = models.CharField(max_length=50, blank=True, null=True)
+    objectname = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         indexes = [

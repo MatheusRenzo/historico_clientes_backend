@@ -36,9 +36,9 @@ class ZabbixConnectionAdmin(admin.ModelAdmin):
 
 @admin.register(ZabbixHost)
 class ZabbixHostAdmin(admin.ModelAdmin):
-    list_display = ("id", "cliente", "nome", "hostname", "ip", "status", "atualizado_em")
-    list_filter = ("cliente", "status")
-    search_fields = ("nome", "hostname", "ip", "cliente__nome")
+    list_display = ("id", "cliente", "nome", "hostname", "objectid", "ip", "status", "atualizado_em")
+    list_filter = ("cliente", "status", "objectid")
+    search_fields = ("nome", "hostname", "ip", "cliente__nome", "objectid")
     ordering = ("cliente__nome", "nome")
 
     autocomplete_fields = ("cliente",)
@@ -47,12 +47,17 @@ class ZabbixHostAdmin(admin.ModelAdmin):
 
 @admin.register(ZabbixTrigger)
 class ZabbixTriggerAdmin(admin.ModelAdmin):
-    list_display = ("id", "cliente", "descricao", "prioridade", "status", "ultima_alteracao")
-    list_filter = ("cliente", "prioridade", "status")
-    search_fields = ("descricao", "cliente__nome")
+    list_display = ("id", "triggerid", "cliente", "descricao", "prioridade", "status", "ultima_alteracao")
+    list_filter = ("cliente", "triggerid", "prioridade", "status")
+    search_fields = ("descricao", "triggerid", "cliente__nome")
     ordering = ("-ultima_alteracao",)
 
     autocomplete_fields = ("cliente",)
+    def hosts_associados(self, obj):
+        hosts = obj.hosts.all()[:5]  # mostra só 5 pra não ficar gigante
+        return ", ".join(h.host for h in hosts)
+
+    hosts_associados.short_description = "Hosts"
 
 
 @admin.register(ZabbixProblem)
@@ -68,6 +73,7 @@ class ZabbixProblemAdmin(admin.ModelAdmin):
 class ZabbixItemAdmin(admin.ModelAdmin):
     list_display = (
         "id",
+        "itemid",
         "cliente",
         "host",
         "name",
@@ -79,8 +85,8 @@ class ZabbixItemAdmin(admin.ModelAdmin):
         "short_lastvalue",
         "enabled",
     )
-    list_filter = ("cliente", "host", "value_type", "enabled")
-    search_fields = ("name", "key", "host__nome", "host__hostname", "cliente__nome")
+    list_filter = ("cliente", "itemid","host", "value_type", "enabled")
+    search_fields = ("name", "itemid","key", "host__nome", "host__hostname", "cliente__nome")
     ordering = ("cliente__nome", "host__nome", "name")
 
     autocomplete_fields = ("cliente", "host")
@@ -114,9 +120,9 @@ class ZabbixHistoryAdmin(admin.ModelAdmin):
 
 @admin.register(ZabbixEvent)
 class ZabbixEventAdmin(admin.ModelAdmin):
-    list_display = ("eventid", "cliente", "clock", "severity_badge", "acknowledged", "host", "short_name")
-    list_filter = ("cliente", "severity", "acknowledged", "clock")
-    search_fields = ("eventid", "name", "host__nome", "host__hostname", "cliente__nome")
+    list_display = ("eventid", "cliente", "objectid", "clock", "severity_badge", "acknowledged", "host", "short_name")
+    list_filter = ("cliente", "severity", "objectid", "acknowledged", "clock")
+    search_fields = ("eventid", "name", "host__nome", "objectid", "host__hostname", "cliente__nome")
     ordering = ("-clock",)
 
     autocomplete_fields = ("cliente", "host")

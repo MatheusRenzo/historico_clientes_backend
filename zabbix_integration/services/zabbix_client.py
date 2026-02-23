@@ -33,10 +33,11 @@ class ZabbixClient:
         if auth and self.auth_token:
             payload["auth"] = self.auth_token
 
-        print("ZABBIX RPC:", json.dumps(payload, ensure_ascii=False)[:2000])
-
+        #print("ZABBIX RPC:", json.dumps(payload, ensure_ascii=False)[:2000])
+        #print(f"Calling Zabbix API at {self.endpoint} with method {method} and params {params}")
         r = requests.post(self.endpoint, json=payload, timeout=self.timeout)
-
+        #print(r)
+        #print(f"ZABBIX RESPONSE (status {r.status_code}): {r.text[:2000]}")  # ✅ log da resposta
         # ✅ log útil antes de estourar
         if r.status_code >= 400:
             print("ZABBIX HTTP ERROR:", r.status_code, r.text[:2000])

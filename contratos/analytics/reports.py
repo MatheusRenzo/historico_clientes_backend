@@ -13,14 +13,14 @@ from .helpers import parse_date_range, seconds_to_hours, qs_contratos, qs_tarefa
 # 4.1 Performance por Cliente
 def report_performance_por_cliente(days: int = 90) -> dict:
     start, end = parse_date_range(days=days)
-
+ 
     contratos = (
         Contrato.objects.select_related("cliente")
         .values("cliente_id", "cliente__nome")
-        .annotate(qt_contratos=Count("id"), horas_previstas=Coalesce(Sum("horas_previstas_total"), 0))
+        .annotate(qt_contratos=Count("id"), horas_previstas=Coalesce(Sum("horas_previstas_total"), 0, output_field=DecimalField()))
         .order_by("-qt_contratos")
     )
-
+ 
     tarefas = (
         ContratoTarefa.objects.filter(criado_em__gte=start, criado_em__lte=end)
         .values("contrato__cliente_id", "contrato__cliente__nome", "status")

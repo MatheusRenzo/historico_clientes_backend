@@ -8,6 +8,7 @@ from .models import ZabbixConnection
 from .serializers import ZabbixConnectionSerializer
 from .services.sync import get_client_for_cliente
 from .services.sync_level1 import sync_level1
+from .servico import sync_hosts
 
 
 class ZabbixConnectionViewSet(ModelViewSet):
@@ -70,3 +71,19 @@ class ZabbixSyncLevel1View(APIView):
 
         sync_level1(int(cliente_id))
         return Response({"status": "ok"})
+
+
+
+class ZabbixSyncHostsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        cliente_id = request.query_params.get("cliente")
+        if not cliente_id:
+            return Response({"detail": "Informe ?cliente=ID"}, status=400)
+
+        cliente_id = int(cliente_id)
+        client = get_client_for_cliente(cliente_id)
+
+        summary = sync_hosts(cliente_id, client)
+        return Response({"detail": "Hosts sincronizados", **summary})

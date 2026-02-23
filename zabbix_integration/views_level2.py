@@ -11,8 +11,8 @@ class ZabbixSyncItemsView(APIView):
 
     def post(self, request):
         cliente = int(request.data.get("cliente"))
-        key_contains = request.data.get("key_contains")  # opcional
-        sync_items(cliente_id=cliente, key_contains=key_contains)
+        hostids = request.data.get("hostids")  # opcional
+        sync_items(cliente_id=cliente, hostids=hostids)
         return Response({"status": "ok"})
 
 
@@ -21,7 +21,7 @@ class ZabbixSyncEventsView(APIView):
 
     def post(self, request):
         cliente = int(request.data.get("cliente"))
-        since_hours = int(request.data.get("since_hours", 24))
+        since_hours = int(request.data.get("since_hours", 240))
         sync_events(cliente_id=cliente, since_hours=since_hours)
         return Response({"status": "ok"})
 

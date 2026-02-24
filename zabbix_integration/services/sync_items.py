@@ -1,28 +1,47 @@
 from django.utils import timezone
-from zabbix_integration.models import ZabbixHost, ZabbixItem
+from zabbix_integration.models import ZabbixItem, ZabbixHost
 from zabbix_integration.services.sync import get_client_for_cliente
-from .utils import dt_from_epoch, chunked
+from .utils import dt_from_epoch
 
 
-BATCH_HOSTS = 10 #200
-BATCH_DB = 2000
+PAGE_SIZE = 2000
 
 
-def sync_items_enterprise(cliente_id):
+def sync_items_enterprise(cliente_id: int):
+
     client = get_client_for_cliente(cliente_id)
 
-    hostids = list(
-        ZabbixHost.objects
-        .filter(cliente_id=cliente_id)
-        .values_list("hostid", flat=True)
-    )
+    last_itemid = 0
+    total_processed = 0
 
-    for host_chunk in chunked(hostids, BATCH_HOSTS):
+    host_map = {
+        h.hostid: h
+        for h in ZabbixHost.objects.filter(cliente_id=cliente_id)
+    }
+
+    while True:
 
         items = client.item_get(
-            output="extend",
-            hostids=host_chunk,
+            output=[
+                "itemid",
+                "hostid",
+                "name",
+                "key_",
+                "value_type",
+                "units",
+                "delay",
+                "lastvalue",
+                "lastclock",
+                "status",
+            ],
+            sortfield="itemid",
+            sortorder="ASC",
+            filter={"itemid": f">{last_itemid}"},
+            limit=PAGE_SIZE,
         )
+
+        if not items:
+            break
 
         itemids = [str(it["itemid"]) for it in items]
 
@@ -34,18 +53,11 @@ def sync_items_enterprise(cliente_id):
             )
         }
 
-        host_map = {
-            h.hostid: h
-            for h in ZabbixHost.objects.filter(
-                cliente_id=cliente_id,
-                hostid__in=host_chunk
-            )
-        }
-
         to_create = []
         to_update = []
 
         for it in items:
+
             itemid = str(it["itemid"])
             host = host_map.get(str(it["hostid"]))
 
@@ -57,6 +69,7 @@ def sync_items_enterprise(cliente_id):
                 obj.name = it.get("name")
                 obj.lastvalue = it.get("lastvalue")
                 obj.lastclock = dt_from_epoch(it.get("lastclock"))
+                obj.enabled = (it.get("status") == "0")
                 to_update.append(obj)
             else:
                 to_create.append(
@@ -77,11 +90,18 @@ def sync_items_enterprise(cliente_id):
                 )
 
         if to_create:
-            ZabbixItem.objects.bulk_create(to_create, batch_size=BATCH_DB)
+            ZabbixItem.objects.bulk_create(to_create, batch_size=1000)
 
         if to_update:
             ZabbixItem.objects.bulk_update(
                 to_update,
-                ["name", "lastvalue", "lastclock"],
-                batch_size=BATCH_DB
+                ["name", "lastvalue", "lastclock", "enabled"],
+                batch_size=1000
             )
+
+        last_itemid = int(items[-1]["itemid"])
+        total_processed += len(items)
+
+        print(f"Processados até itemid {last_itemid} | total {total_processed}")
+
+    return {"total_items_processados": total_processed}

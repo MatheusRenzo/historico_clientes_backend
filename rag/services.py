@@ -29,7 +29,6 @@ def _build_vectorstore_for_cliente(cliente_id: int) -> FAISS:
 
     #embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     OPENAI_API_KEY = get_parametro_cliente(str(cliente_id), "OPEN_API_KEY")#os.getenv("OPENAI_API_KEY")
-    print(f"OPENAI_API_KEY: {OPENAI_API_KEY}")
     embeddings = OpenAIEmbeddings(
                     model="text-embedding-3-small",
                     api_key=OPENAI_API_KEY,

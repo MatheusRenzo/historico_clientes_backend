@@ -7,8 +7,8 @@ from django.core.exceptions import PermissionDenied
 from contratos.models import (
     Contrato, ContratoArquivo, ContratoClausula, ContratoTarefa, CopilotRun
 )
-from .audit import start_run, log_action, finish_run_ok, finish_run_error
-from .permissions import assert_perm, assert_contrato_scope
+from copilot_mcp.audit import start_run, log_action, finish_run_ok, finish_run_error
+from copilot_mcp.permissions import assert_perm, assert_contrato_scope
 
 
 def contratos_extrair_clausulas(

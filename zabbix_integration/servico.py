@@ -6,39 +6,83 @@ from zabbix_integration.services.sync import get_client_for_cliente
 from .models import ZabbixHost, ZabbixItem, ZabbixTrigger, ZabbixEvent
 from datetime import datetime, timedelta, timezone as dt_timezone
 
-def sync_hosts(cliente_id: int, client) -> dict[str, Any]:
-    result = client.host_get(
-        output=["hostid", "host", "name", "status"],
-        selectInterfaces=["ip", "dns", "port"],
-    )
+def sync_hosts(
+    cliente_id: int,
+    client,
+    filtros: dict | None = None
+) -> dict[str, Any]:
+
+    params = {
+        "output": ["hostid", 
+                   "host", 
+                   "name", 
+                   "status", 
+                   "description",
+                   "proxy_hostid",
+                   "maintenance_status",
+                   "maintenace_type",
+                   "available",
+                   "snmp_available",
+                   "ipmi_available",
+                   "jmx_available",
+                   "tls_connect",
+                   "tls_accept",
+                   "flags",
+                   "inventory_mode",
+                   ],
+        "selectInterfaces": ["ip", "dns", "port"],
+    }
+
+    # ✅ Aplicando filtros se existirem
+    if filtros:
+        filter_dict = {}
+        search_dict = {}
+
+        if filtros.get("host"):
+            filter_dict["host"] = filtros["host"]
+
+        if filtros.get("hostname"):
+            # busca parcial no name
+            search_dict["name"] = filtros["hostname"]
+
+        if filter_dict:
+            params["filter"] = filter_dict
+
+        if search_dict:
+            params["search"] = search_dict
+            params["searchWildcardsEnabled"] = True
+
+    # 🔹 chamada ao Zabbix
+    result = client.host_get(**params)
 
     saved = 0
+
     for h in result:
         interfaces = h.get("interfaces") or []
         i0 = interfaces[0] if interfaces else {}
 
         defaults = {
-            "host": h.get("host"),
-            "name": h.get("name"),
+            "hostid": h.get("hostid"),
+            "hostname": h.get("host"),
+            "nome": h.get("name"),
             "status": int(h.get("status") or 0),
-            "ip": i0.get("ip") or None,
-            "dns": i0.get("dns") or None,
-            "port": i0.get("port") or None,
-            "raw": h,  # ✅ payload inteiro do Zabbix
+            "raw": h,
         }
 
+        # ⚠️ Mantive sua estrutura atual sem quebrar
         ZabbixHost.objects.update_or_create(
             cliente_id=cliente_id,
             hostid=str(h["hostid"]),
-            #defaults=defaults,
-            hostname=h.get("host"),
-            nome=h.get("name"),
-            status=int(h.get("status") or 0), 
-            ip=h.get("ip"),
+            defaults=defaults,  # 🔥 Recomendo usar defaults
         )
+
         saved += 1
 
-    return {"count": len(result), "saved": saved}
+    return {
+        "count": len(result),
+        "saved": saved,
+        "filtros_aplicados": filtros or {}
+    }
 
 
 def _dt_from_epoch(ts: str | int):

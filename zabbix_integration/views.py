@@ -1,3 +1,4 @@
+from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -78,12 +79,44 @@ class ZabbixSyncHostsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        cliente_id = request.query_params.get("cliente")
-        if not cliente_id:
-            return Response({"detail": "Informe ?cliente=ID"}, status=400)
+        data = request.data
 
-        cliente_id = int(cliente_id)
+        cliente_id = data.get("cliente")
+        host = data.get("host")
+        hostname = data.get("hostname")
+
+        if not cliente_id:
+            return Response(
+                {"detail": "Campo 'cliente' é obrigatório"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            cliente_id = int(cliente_id)
+        except ValueError:
+            return Response(
+                {"detail": "Campo 'cliente' deve ser inteiro"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         client = get_client_for_cliente(cliente_id)
 
-        summary = sync_hosts(cliente_id, client)
-        return Response({"detail": "Hosts sincronizados", **summary})
+        # monta filtros dinâmicos
+        filtros = {}
+
+        if host:
+            filtros["host"] = host
+
+        if hostname:
+            filtros["name"] = hostname  # Zabbix usa "name" para hostname visível
+
+        summary = sync_hosts(
+            cliente_id=cliente_id,
+            client=client,
+            filtros=filtros
+        )
+
+        return Response({
+            "detail": "Hosts sincronizados",
+            **summary
+        })

@@ -10,21 +10,68 @@ def _dt_from_epoch(epoch: str | int):
 
 
 @transaction.atomic
-def sync_items(cliente_id: int, hostids: list[str] | None = None, key_contains: str | None = None):
+def sync_items(
+    cliente_id: int,
+    host: str,
+    filtros: dict | None = None
+) -> dict[str, Any]:
     """
     Sincroniza itens (item.get). Recomendação: filtrar por key para trazer só itens relevantes.
     """
     client = get_client_for_cliente(cliente_id)
 
+    # Primeiro busca o hostid pelo nome técnico
+    host_result = client.host_get(
+        output=["hostid"],
+        filter={"host": host}
+    )
+
+    if not host_result:
+        return {"error": "Host não encontrado no Zabbix"}
+
+    hostid = host_result[0]["hostid"]
+
     params = {
-        "output": ["itemid", "name", "key_", "value_type", "units", "delay", "lastvalue", "lastclock", "status", "hostid"],
-        "hostids": hostids or [],
+        "output": ["itemid", 
+                   "name", 
+                   "key_", 
+                   "value_type", 
+                   "units", 
+                   "delay", 
+                   "lastvalue", 
+                   "lastclock", 
+                   "status",
+                   ],
+        "hostids": [hostid],
         #"limit": 1,
     }
+    # 🔎 Aplicando filtros
+    if filtros:
+        filter_dict = {}
+        search_dict = {}
+
+        if filtros.get("status") is not None:
+            filter_dict["status"] = str(filtros["status"])
+
+        if filtros.get("key_"):
+            search_dict["key_"] = filtros["key_"]
+
+        if filtros.get("name"):
+            search_dict["name"] = filtros["name"]
+
+        if filter_dict:
+            params["filter"] = filter_dict
+
+        if search_dict:
+            params["search"] = search_dict
+            params["searchWildcardsEnabled"] = True
+
     items = client.item_get(**params)
+    saved = 0
     for it in items:
-        print(it)
-        hostok = it.get("hostid")
+        #print(it)
+        hostok = it.get("hostids") and it["hostids"][0]
+        print(f"Item {it['itemid']} has hostid {hostok}")
         host = ZabbixHost.objects.filter(hostid=hostok).first() if hostok else None
         print(f"Hostid {hostok} maps to host {host}")
         print(f"Found host {hostok} for item {it['itemid']}")
@@ -43,6 +90,14 @@ def sync_items(cliente_id: int, hostids: list[str] | None = None, key_contains: 
                 "enabled": (it.get("status") == "0"),
             },
         )
+        saved += 1
+
+    return {
+        "host": host,
+        "total_encontrados": len(items),
+        "salvos": saved,
+        "filtros_aplicados": filtros or {}
+    }
 
 
 @transaction.atomic

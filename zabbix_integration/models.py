@@ -29,6 +29,7 @@ class ZabbixHost(models.Model):
 
     ip = models.CharField(max_length=50, blank=True, null=True)
     objectid = models.CharField(max_length=50, blank=True, null=True)
+    raw = models.JSONField(default=dict, blank=True)
 
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)

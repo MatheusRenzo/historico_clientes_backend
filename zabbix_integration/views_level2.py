@@ -6,14 +6,53 @@ from rest_framework.permissions import IsAuthenticated
 from zabbix_integration.services.sync_level2 import sync_items, sync_events, sync_history
 
 
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+
 class ZabbixSyncItemsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        cliente = int(request.data.get("cliente"))
-        hostids = request.data.get("hostids")  # opcional
-        sync_items(cliente_id=cliente, hostids=hostids)
-        return Response({"status": "ok"})
+        data = request.data
+
+        cliente = data.get("cliente")
+        host = data.get("host")
+
+        if not cliente:
+            return Response(
+                {"detail": "Campo 'cliente' é obrigatório"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not host:
+            return Response(
+                {"detail": "Campo 'host' é obrigatório"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            cliente = int(cliente)
+        except ValueError:
+            return Response(
+                {"detail": "Campo 'cliente' deve ser inteiro"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        filtros = {
+            "name": data.get("name"),
+            "key_": data.get("key_"),
+            "status": data.get("status"),
+        }
+
+        summary = sync_items(
+            cliente_id=cliente,
+            host=host,
+            filtros=filtros
+        )
+
+        return Response(summary)
 
 
 class ZabbixSyncEventsView(APIView):

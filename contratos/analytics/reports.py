@@ -94,15 +94,15 @@ def report_tarefas_por_responsavel(cliente_id: int | None = None, days: int = 90
 
     qs = qs_tarefas(cliente_id=cliente_id).filter(criado_em__gte=start, criado_em__lte=end)
     rows = (
-        qs.values("responsavel_sugerido", "status")
+        qs.values("usuario_responsavel", "status")
         .annotate(qt=Count("id"))
-        .order_by("responsavel_sugerido", "status")
+        .order_by("usuario_responsavel", "status")
     )
 
-    out = defaultdict(lambda: {"responsavel_sugerido": None, "por_status": defaultdict(int), "total": 0})
+    out = defaultdict(lambda: {"usuario_responsavel": None, "por_status": defaultdict(int), "total": 0})
     for r in rows:
-        resp = r["responsavel_sugerido"] or "NÃO DEFINIDO"
-        out[resp]["responsavel_sugerido"] = resp
+        resp = r["usuario_responsavel"] or "NÃO DEFINIDO"
+        out[resp]["usuario_responsavel"] = resp
         out[resp]["por_status"][r["status"]] += r["qt"]
         out[resp]["total"] += r["qt"]
 
